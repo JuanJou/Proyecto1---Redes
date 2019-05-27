@@ -1,0 +1,1 @@
+char* loc_ntoa (const u_char *binary);

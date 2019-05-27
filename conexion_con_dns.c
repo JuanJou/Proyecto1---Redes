@@ -90,10 +90,11 @@ void ngethostbyname(unsigned char *host , int query_type)
  
         answers[i].resource = (struct R_DATA*)(reader);
         reader = reader + sizeof(struct R_DATA);
- 
-        if(ntohs(answers[i].resource->type) == 1) //if its an ipv4 address
+        int response_type = ntohs(answers[i].resource->type);
+        answers[i].rdata = (unsigned char*)malloc(ntohs(answers[i].resource->data_len));
+
+        if(response_type == T_A) //if its an ipv4 address
         {
-            answers[i].rdata = (unsigned char*)malloc(ntohs(answers[i].resource->data_len));
  
             for(j=0 ; j<ntohs(answers[i].resource->data_len) ; j++)
             {
@@ -106,8 +107,23 @@ void ngethostbyname(unsigned char *host , int query_type)
         }
         else
         {
-            answers[i].rdata = ReadName(reader,buf,&stop);
-            reader = reader + stop;
+            if (response_type == T_MX) {
+                *answers[i].rdata = *(reader+1);
+                reader += sizeof(short);
+                answers[i].rdata += sizeof(short);
+                ReadName(reader,buf,&stop,answers[i].rdata); 
+                answers[i].rdata -= sizeof(short);
+                reader += stop;
+            }
+            else {
+                if (response_type == T_LOC)
+                {
+                    loc_ntoa(reader);
+                }
+                else {
+                    printf("Wrong type\n");
+                }
+            }
         }
     }
  
@@ -205,14 +221,13 @@ void ngethostbyname(unsigned char *host , int query_type)
 /*
  * 
  * */
-u_char* ReadName(unsigned char* reader,unsigned char* buffer,int* count)
+u_char* ReadName(unsigned char* reader,unsigned char* buffer,int* count,unsigned char *name;)
 {
-    unsigned char *name;
+    
     unsigned int p=0,jumped=0,offset;
     int i , j;
  
     *count = 1;
-    name = (unsigned char*)malloc(256);
  
     name[0]='\0';
  

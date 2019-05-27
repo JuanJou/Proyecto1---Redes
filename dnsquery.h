@@ -11,6 +11,7 @@
 #include<unistd.h>    //getpid
 #include "./validar_entrada.h"
 #include "./conexion_con_dns.h"
+#include "./location.h"
 //List of DNS Servers registered on the system
 
 char dns_servers[10][100];
@@ -19,9 +20,7 @@ int dns_server_count = 0;
  
 #define T_A 1 //Ipv4 address
 #define T_NS 2 //Nameserver
-#define T_CNAME 5 // canonical name
-#define T_SOA 6 /* start of authority zone */
-#define T_PTR 12 /* domain name pointer */
+#define T_LOC 29 /* domain name pointer */
 #define T_MX 15 //Mail server
  
 //Function Prototypes
@@ -98,5 +97,14 @@ typedef struct
     unsigned char *name;
     struct QUESTION *ques;
 } QUERY;
+
+struct SOA
+{
+    unsigned int serial;
+    int refresh;
+    int retry;
+    int expire;
+    unsigned int minimum;
+};
 
 void main(int argc, char* argv[]);
