@@ -16,6 +16,10 @@ void main(int argc, char* argv[]) {
 		return 1;
 	}
 
+    if (strcmp(argumentos->formaDeConsulta,2)) {
+        argumentos->nameserver = ".";
+    }
+
 	sendRequestToTheServer(dnsInfo, bufferForInfo,argumentos);
 	bufferForInfo = receiveRequestFromServer(dnsInfo, bufferForInfo);
 
@@ -23,11 +27,12 @@ void main(int argc, char* argv[]) {
 
 	unsigned char* reader = &bufferForInfo[sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION)];
 
+
 	answers = readAnswers(dnsInfo,reader);
 	auth = readAuthorities(dnsInfo,reader);
 	addit = readAdditional(dnsInfo,reader);
 
-	printResponse();
+	printResponse(dnsInfo,answers,auth,addit);
 
 	free(dnsInfo);
 
@@ -37,7 +42,7 @@ int validarArgumentos(int argc, char* argv[]) {
 	return 1;
 }
 
-unsigned char* getNameServerFromResolv() {
+unsigned char getNameServerFromResolv() {
 	FILE *fp;
     char line[200];
     char* p;
@@ -59,7 +64,7 @@ unsigned char* getNameServerFromResolv() {
         }
     }
      
-    return p;
+    return *p;
 }
 
 int stop=0;
@@ -163,3 +168,59 @@ struct RES_RECORD[] readAdditional(struct DNS_INFO dns,unsigned char buff[]) {
     return addit;
 }
 
+printResponse(struct DNS_HEADER* dns, struct RES_RECORD* answers, struct RES_RECORD* answers, struct RES_RECORD* answers) {
+    printf("\nAnswer Records : %d \n" , ntohs(dns->ans_count) );
+    
+    int i;
+
+    for(i=0 ; i < ntohs(dns->ans_count) ; i++)
+    {
+        printf("Name : %s ",answers[i].name);
+ 
+        if( ntohs(answers[i].resource->type) == T_A) //IPv4 address
+        {
+            long *p;
+            p=(long*)answers[i].rdata;
+            a.sin_addr.s_addr=(*p); //working without ntohl
+            printf("has IPv4 address : %s",inet_ntoa(a.sin_addr));
+        }
+         
+        if(ntohs(answers[i].resource->type)==5) 
+        {
+            //Canonical name for an alias
+            printf("has alias name : %s",answers[i].rdata);
+        }
+ 
+        printf("\n");
+    }
+
+    
+    //print authorities
+    printf("\nAuthoritive Records : %d \n" , ntohs(dns->auth_count) );
+    for( i=0 ; i < ntohs(dns->auth_count) ; i++)
+    {
+         
+        printf("Name : %s ",auth[i].name);
+        if(ntohs(auth[i].resource->type)==2)
+        {
+            printf("has nameserver : %s",auth[i].rdata);
+        }
+        printf("\n");
+    }
+ 
+    //print additional resource records
+    printf("\nAdditional Records : %d \n" , ntohs(dns->add_count) );
+    for(i=0; i < ntohs(dns->add_count) ; i++)
+    {
+        printf("Name : %s ",addit[i].name);
+        if(ntohs(addit[i].resource->type)==1)
+        {
+            long *p;
+            p=(long*)addit[i].rdata;
+            a.sin_addr.s_addr=(*p);
+            printf("has IPv4 address : %s",inet_ntoa(a.sin_addr));
+        }
+        printf("\n");
+    }
+    return;
+}
